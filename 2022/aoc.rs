@@ -27,3 +27,37 @@ macro_rules! aocfmt {
         }
     }
 }
+
+macro_rules! aocmain {
+    ($s: ty) => {
+        fn main() {
+            aoc::run(&mut $s::new())
+        }
+    }
+}
+
+macro_rules! aocsubtasks {
+    ($s: ty) => {
+        enum Mode {
+            Subtask1,
+            Subtask2,
+        }
+
+        fn main() {
+            let args = std::env::args().collect::<Vec<String>>();
+            if args.len() < 2 {
+                println!("indicate submode as arg, e.g. `./aoc 1`");
+                return
+            }
+            let mode = match args[1].as_ref() {
+                "1" => Mode::Subtask1,
+                "2" => Mode::Subtask2,
+                &_ => {
+                    println!("bad arg, must be `1` or `2`");
+                    return
+                }
+            };
+            aoc::run(&mut <$s>::new(mode))
+        }
+    }
+}
