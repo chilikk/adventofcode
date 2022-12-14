@@ -1,3 +1,4 @@
+#[macro_use]
 mod aoc;
 use std::cmp::{PartialOrd, Ordering};
 
@@ -89,21 +90,9 @@ impl Task13 {
         }
         r
     }
-
-    fn task1(&self) -> u16 {
-        self.acc1
-    }
-
-    fn task2(&self) -> u16 {
-        self.acc2
-    }
 }
 
-impl std::fmt::Display for Task13 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n{}", self.task1(), self.task2())
-    }
-}
+aocfmt!{Task13, self, self.acc1, self.acc2}
 
 impl aoc::AdventurerOfCode for Task13 {
     fn handle_line(&mut self, line: String) {

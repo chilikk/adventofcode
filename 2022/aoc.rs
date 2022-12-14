@@ -11,5 +11,19 @@ pub fn run(adv: &mut dyn AdventurerOfCode) {
         }
     }
     adv.after();
-    println!("{adv}")
+    print!("{adv}")
+}
+
+macro_rules! aocfmt {
+    ($s: ty, $self:ident$(, $x: expr)*) => {
+        impl std::fmt::Display for $s {
+            fn fmt(&$self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let mut res = std::fmt::Result::Ok(());
+                $(
+                    res = res.and(write!(f, "{}\n", $x));
+                )*
+                res
+            }
+        }
+    }
 }
