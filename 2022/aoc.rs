@@ -17,10 +17,10 @@ pub fn run(adv: &mut dyn AdventurerOfCode) {
 macro_rules! aocfmt {
     ($s: ty, $self:ident$(, $x: expr)*) => {
         impl std::fmt::Display for $s {
-            fn fmt(&$self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&$self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let mut res = std::fmt::Result::Ok(());
                 $(
-                    res = res.and(write!(f, "{}\n", $x));
+                    res = res.and(write!(_f, "{}\n", $x));
                 )*
                 res
             }
@@ -31,7 +31,7 @@ macro_rules! aocfmt {
 macro_rules! aocmain {
     ($s: ty) => {
         fn main() {
-            aoc::run(&mut $s::new())
+            aoc::run(&mut <$s>::new())
         }
     }
 }
