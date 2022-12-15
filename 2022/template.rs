@@ -1,3 +1,4 @@
+#[allow(unused_macros)]
 #[macro_use]
 mod aoc;
 
@@ -11,8 +12,6 @@ impl TaskN {
     }
 }
 
-aocfmt!{TaskN, self}
-
 impl aoc::AdventurerOfCode for TaskN {
     fn handle_line(&mut self, line: String) {
     }
@@ -21,6 +20,5 @@ impl aoc::AdventurerOfCode for TaskN {
     }
 }
 
-fn main() {
-    aoc::run(&mut TaskN::new())
-}
+aocfmt!{TaskN, self}
+aocmain!{TaskN}

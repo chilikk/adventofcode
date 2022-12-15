@@ -18,6 +18,7 @@ macro_rules! aocfmt {
     ($s: ty, $self:ident$(, $x: expr)*) => {
         impl std::fmt::Display for $s {
             fn fmt(&$self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                #[allow(unused_mut)]
                 let mut res = std::fmt::Result::Ok(());
                 $(
                     res = res.and(write!(_f, "{}\n", $x));
