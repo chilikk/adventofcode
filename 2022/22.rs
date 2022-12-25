@@ -38,12 +38,40 @@ enum CubeFace {
     Right
 }
 
+impl CubeFace {
+    fn ordinal(&self) -> u8 {
+        match *self {
+            CubeFace::Up => 0,
+            CubeFace::Front => 1,
+            CubeFace::Down => 2,
+            CubeFace::Back => 3,
+            CubeFace::Left => 4,
+            CubeFace::Right => 5,
+        }
+    }
+    fn from_ordinal(ord: u8) -> Self {
+        match ord {
+            0 => CubeFace::Up,
+            1 => CubeFace::Front,
+            2 => CubeFace::Down,
+            3 => CubeFace::Back,
+            4 => CubeFace::Left,
+            5 => CubeFace::Right,
+            _ => panic!("bad ordinal"),
+        }
+    }
+}
+
+type Position = (Option<CubeFace>, usize, usize);
+
 struct Task22 {
     reading_map: bool,
     lines: Vec<String>,
     instructions: Vec<Instruction>,
     map: Matrix<Cell,Dynamic,Dynamic,VecStorage<Cell,Dynamic,Dynamic>>,
-    start: (usize, usize),
+    cube_side: usize,
+    cube: Vec<Matrix<Cell,Dynamic,Dynamic,VecStorage<Cell,Dynamic,Dynamic>>>,
+    start: Position,
     dir: Direction,
     mode: Mode,
     acc: usize,
@@ -56,7 +84,9 @@ impl Task22 {
             lines: Vec::new(),
             instructions: Vec::new(),
             map: DMatrix::from_element(0, 0, Cell::Edge),
-            start: (0,0),
+            cube_side: 0,
+            cube: Vec::new(),
+            start: (None,0,0),
             dir: Direction::Right,
             mode: mode,
             acc: 0,
@@ -83,7 +113,7 @@ impl Task22 {
         }
     }
 
-    fn exec(&mut self, pos: &mut (usize, usize), dir: &mut Direction, instr: Instruction) {
+    fn exec(&mut self, pos: &mut Position, dir: &mut Direction, instr: Instruction) {
         println!("{:?} {:?}", pos, dir);
         match instr {
             Instruction::TurnLeft => match *dir {
@@ -109,72 +139,76 @@ impl Task22 {
         }
     }
 
-    fn go_up(&self, pos: &mut (usize, usize), dir: &mut Direction) {
-        let (mut x, mut y) = *pos;
-        let mut newx = x;
-        loop {
-            newx = if newx == 0 {
-                self.map.nrows() - 1
-            } else {
-                newx - 1
-            };
-            match self.map[(newx,y)] {
-                Cell::Empty => *pos = (newx, y),
-                Cell::Wall => (),
-                Cell::Edge => continue,
+    fn go_up(&self, pos: &mut Position, dir: &mut Direction) {
+        if let (None, x, y) = *pos {
+            let mut newx = x;
+            loop {
+                newx = if newx == 0 {
+                    self.map.nrows() - 1
+                } else {
+                    newx - 1
+                };
+                match self.map[(newx,y)] {
+                    Cell::Empty => pos.1 = newx,
+                    Cell::Wall => (),
+                    Cell::Edge => continue,
+                }
+                break
             }
-            break
         }
     }
-    fn go_down(&self, pos: &mut (usize, usize), dir: &mut Direction) {
-        let (mut x, mut y) = *pos;
-        let mut newx = x;
-        loop {
-            newx = if newx + 1 == self.map.nrows() {
-                0
-            } else {
-                newx + 1
-            };
-            match self.map[(newx,y)] {
-                Cell::Empty => *pos = (newx, y),
-                Cell::Wall => (),
-                Cell::Edge => continue,
+    fn go_down(&self, pos: &mut Position, dir: &mut Direction) {
+        if let (None, x, y) = *pos {
+            let mut newx = x;
+            loop {
+                newx = if newx + 1 == self.map.nrows() {
+                    0
+                } else {
+                    newx + 1
+                };
+                match self.map[(newx,y)] {
+                    Cell::Empty => pos.1 = newx,
+                    Cell::Wall => (),
+                    Cell::Edge => continue,
+                }
+                break
             }
-            break
         }
     }
-    fn go_left(&self, pos: &mut (usize, usize), dir: &mut Direction) {
-        let (mut x, mut y) = *pos;
-        let mut newy = y;
-        loop {
-            newy = if newy == 0 {
-                self.map.ncols() - 1
-            } else {
-                newy - 1
-            };
-            match self.map[(x,newy)] {
-                Cell::Empty => *pos = (x, newy),
-                Cell::Wall => (),
-                Cell::Edge => continue,
+    fn go_left(&self, pos: &mut Position, dir: &mut Direction) {
+        if let (None, x, y) = *pos {
+            let mut newy = y;
+            loop {
+                newy = if newy == 0 {
+                    self.map.ncols() - 1
+                } else {
+                    newy - 1
+                };
+                match self.map[(x,newy)] {
+                    Cell::Empty => pos.2 = newy,
+                    Cell::Wall => (),
+                    Cell::Edge => continue,
+                }
+                break
             }
-            break
         }
     }
-    fn go_right(&self, pos: &mut (usize, usize), dir: &mut Direction) {
-        let (mut x, mut y) = *pos;
-        let mut newy = y;
-        loop {
-            newy = if newy + 1 == self.map.ncols() {
-                0
-            } else {
-                newy + 1
-            };
-            match self.map[(x,newy)] {
-                Cell::Empty => *pos = (x, newy),
-                Cell::Wall => (),
-                Cell::Edge => continue,
+    fn go_right(&self, pos: &mut Position, dir: &mut Direction) {
+        if let (None, x, y) = *pos {
+            let mut newy = y;
+            loop {
+                newy = if newy + 1 == self.map.ncols() {
+                    0
+                } else {
+                    newy + 1
+                };
+                match self.map[(x,newy)] {
+                    Cell::Empty => pos.2 = newy,
+                    Cell::Wall => (),
+                    Cell::Edge => continue,
+                }
+                break
             }
-            break
         }
     }
 }
@@ -199,6 +233,7 @@ impl aoc::AdventurerOfCode for Task22 {
     }
 
     fn after(&mut self) {
+        let mut total = 0;
         let rows = self.lines.len();
         let columns = self.lines.iter().fold(0, |acc,line|acc.max(line.len()));
         self.map = DMatrix::from_element(rows, columns, Cell::Edge);
@@ -207,27 +242,37 @@ impl aoc::AdventurerOfCode for Task22 {
                 match c {
                     ' ' => (),
                     '.' => {
+                        total += 1;
                         self.map[(i,j)] = Cell::Empty;
-                        if i == 0 && self.start == (0, 0) {
-                            self.start = (0, j)
+                        if i == 0 {
+                            if let (_, 0, 0) = self.start {
+                                self.start.2 = j
+                            }
                         }
                     },
-                    '#' => self.map[(i,j)] = Cell::Wall,
+                    '#' => {
+                        total += 1;
+                        self.map[(i,j)] = Cell::Wall;
+                    },
                     _ => panic!("unexpected character {}", c),
                 }
             }
         }
         if let Mode::Subtask2 = self.mode {
+            self.cube_side = total/6;
+            self.cube.resize(6, DMatrix::from_element(
+                    self.cube_side, self.cube_side, Cell::Edge));
             let pos = self.start.clone();
-            let mut pos2face: BTreeMap<(usize,usize),CubeFace> = BTreeMap::new();
-            pos2face.insert(pos, CubeFace::Front);
             let mut i = 0;
             while i < self.map.nrows() {
                 let mut j = 0;
                 while j < self.map.ncols() {
                     match self.map[(i,j)] {
                         Cell::Edge => (),
-                        _ => (),
+                        _ => {
+                            let face = m
+
+                        },
                     }
                     j += 50
                 }
@@ -239,7 +284,7 @@ impl aoc::AdventurerOfCode for Task22 {
         for instr in self.instructions.clone() {
             self.exec(&mut pos, &mut dir, instr)
         }
-        self.acc = 1000*(pos.0+1) + 4*(pos.1+1) + match dir {
+        self.acc = 1000*(pos.1+1) + 4*(pos.2+1) + match dir {
             Direction::Right => 0,
             Direction::Down => 1,
             Direction::Left => 2,
