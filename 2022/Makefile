@@ -1,2 +1,2 @@
 %: %.rs aoc.rs
-	rustc $<
+	cargo build --bin $@
