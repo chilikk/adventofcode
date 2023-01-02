@@ -2,7 +2,7 @@
 #[macro_use]
 mod aoc;
 use std::str::FromStr;
-use std::ops::{AddAssign,SubAssign,Add,Sub,MulAssign,Mul};
+use std::ops::{AddAssign,SubAssign,Add,Sub};
 use std::cmp::{Ordering,PartialOrd};
 
 struct Task19 {
@@ -93,23 +93,6 @@ impl Sub for Resources {
     }
 }
 
-impl MulAssign<usize> for Resources {
-    fn mul_assign(&mut self, other: usize) {
-        for v1 in self.0.iter_mut() {
-            *v1 *= other as i16
-        }
-    }
-}
-
-impl Mul<usize> for Resources {
-    type Output = Self;
-    fn mul(self, other: usize) -> Self {
-        let mut res = self.clone();
-        res *= other;
-        res
-    }
-}
-
 impl FromStr for Resources {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -153,92 +136,96 @@ impl FromStr for Blueprint {
     }
 }
 
-#[derive(Copy,Clone,Debug,PartialEq)]
-enum Decision {
-    DoNothing,
-    Build(usize)
-}
-
 impl Blueprint {
 
     fn max_geodes(&self, t: usize) -> u16 {
         let resources = Resources::new();
         let mut robots = Resources::new();
         robots.0[0] = 1;
-        let init_decision = Decision::DoNothing;
-        self.max_geodes_step(t, 0, resources, robots, init_decision, Vec::new())
+        let init_decision = 4;
+        self.max_geodes_step(t, 0, resources, robots, init_decision, 0)
     }
 
     fn max_geodes_step(
         &self, t: usize, cur_max: u16, mut resources: Resources,
-        mut robots: Resources, exec: Decision, last_rejected: Vec<Decision>
-    ) -> u16
+        mut robots: Resources, exec: usize, last_rejected: u8) -> u16
     {
         match exec {
-            Decision::DoNothing => (),
-            Decision::Build(i) => {
+            4 => (), // do nothing
+            i => { // build robot `i`
                 resources -= self.cost[i].clone();
                 robots.0[i] += 1;
             },
         }
-        if ! self.validate_path(t+1, cur_max, &robots) {
+        // end of t+1
+        if ! self.validate_path(t, cur_max, &robots) {
             return 0
         }
-        let mut possible_decisions: Vec<Decision> = vec![];
+        let mut possible_decisions = 0;
         for (i, robot_cost) in self.cost.iter().enumerate() {
             if *robot_cost <= resources {
-                let decision = Decision::Build(i);
-                if ! last_rejected.contains(&decision) {
-                    possible_decisions.push(decision)
+                let decision = i;
+                let decisionbit = 1 << decision;
+                if last_rejected & decisionbit == 0 {
+                    possible_decisions |= decisionbit
                 }
             }
         }
-        if possible_decisions.len() == 0 || last_rejected.len() == 0 {
-            possible_decisions.push(Decision::DoNothing)
+        let do_nothing_bit = 1<<4;
+        if possible_decisions == 0 || last_rejected == 0 {
+            possible_decisions |= do_nothing_bit;
         }
         resources += robots.clone();
         if t == 1 {
+            if resources.0[3] as u16 > cur_max {
+                println!("new max: {}", cur_max)
+            }
             cur_max.max(resources.0[3] as u16)
         } else {
-            let mut max = 0;
-            for decision in possible_decisions.iter() {
-                let new_last_rejected;
-                if let Decision::DoNothing = decision {
-                    if possible_decisions.len() == 1 {
-                        new_last_rejected = last_rejected.clone();
+            let mut max = cur_max;
+            //let decision_order = match robots {
+            //    Resources([_,0,_,_]) => [1,4,0,3,2],
+            //    Resources([_,_,0,_]) => [2,4,1,0,3],
+            //    Resources([_,_,_,0]) => [3,4,2,1,0],
+            //    _                    => [3,2,1,0,4],
+            //};
+            for decision in [3,2,1,0,4] {
+                let decision_bit = 1 << decision;
+                if possible_decisions & decision_bit != 0 {
+                    let do_nothing = decision == 4;
+                    let new_last_rejected = if possible_decisions == do_nothing_bit {
+                        last_rejected
+                    } else if do_nothing {
+                        possible_decisions
                     } else {
-                        new_last_rejected = possible_decisions.clone();
-                    }
-                } else {
-                    new_last_rejected = Vec::new();
+                        0
+                    };
+                    max = max.max(self.max_geodes_step(
+                            t-1, max, resources.clone(), robots.clone(),
+                            decision, new_last_rejected))
                 }
-                max = max.max(self.max_geodes_step(
-                        t-1, max, resources.clone(), robots.clone(),
-                        (*decision).clone(), new_last_rejected))
             }
             max
         }
     }
 
     fn validate_path(&self, t: usize, cur_max: u16, robots: &Resources) -> bool {
+        // t is before current turn, t == 1 is final
         let t_require_geode = 1 + Blueprint::min_time_to_mine(cur_max as i16+1);
         let t_require_obsidian = t_require_geode + 1 + Blueprint::min_time_to_mine(self.cost[3].0[2]);
         let t_require_clay = t_require_obsidian + 1 + Blueprint::min_time_to_mine(self.cost[2].0[1]);
         match *robots {
-            Resources([_, _, _, 0]) if t == t_require_geode    => false,
-            Resources([_, _, 0, _]) if t == t_require_obsidian => false,
-            Resources([_, 0, _, _]) if t == t_require_clay     => false,
-            _                                                  => true,
+            Resources([_, _, _, 0]) if t < t_require_geode    => false,
+            Resources([_, _, 0, _]) if t < t_require_obsidian => false,
+            Resources([_, 0, _, _]) if t < t_require_clay     => false,
+            _                                                 => true,
         }
     }
 
     fn min_time_to_mine(n: i16) -> usize {
-        let mut t = n as usize;
-        let mut sum_to = 1;
-        for nrobots in 2..n {
-            t = t.min(nrobots as usize - 1 + (n-sum_to) as usize/nrobots as usize);
-            sum_to += nrobots;
-        }
+        let mut t = 1;
+        let tomine = n as usize;
+        while t*(t+1)/2 < tomine { t+=1 }
         t
     }
 
@@ -262,11 +249,11 @@ impl aoc::AdventurerOfCode for Task19 {
         let max_geodes24 = blueprint.max_geodes(24) as u16;
         println!("{:?} : max 24 {}", blueprint, max_geodes24);
         self.acc1 += blueprint.id * max_geodes24;
-        //if blueprint.id <= 3 {
-        //    let max_geodes32 = blueprint.max_geodes(32) as u16;
-        //    println!("{:?} : max 32 {}", blueprint, max_geodes32);
-        //    self.acc2 *= max_geodes32 as u64;
-        //}
+        if blueprint.id <= 3 {
+            let max_geodes32 = blueprint.max_geodes(32) as u16;
+            println!("{:?} : max 32 {}", blueprint, max_geodes32);
+            self.acc2 *= max_geodes32 as u64;
+        }
 
     }
 
