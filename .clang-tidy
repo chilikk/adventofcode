@@ -1,0 +1,15 @@
+Checks: "bugprone-*,
+         cert-*,
+         concurrency-*,
+         cppcoreguidelines-*,
+         -cppcoreguidelines-avoid-magic-numbers,
+         -cppcoreguidelines-non-private-member-variables-in-classes,
+         -cppcoreguidelines-avoid-do-while,
+         misc-*,
+         -misc-non-private-member-variables-in-classes,
+"
+ExtraArgs:
+  - '-std=c++20'
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+FormatStyle:     none
