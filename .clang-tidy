@@ -1,12 +1,16 @@
 Checks: "bugprone-*,
+         -bugprone-easily-swappable-parameters,
          cert-*,
          concurrency-*,
          cppcoreguidelines-*,
          -cppcoreguidelines-avoid-magic-numbers,
          -cppcoreguidelines-non-private-member-variables-in-classes,
          -cppcoreguidelines-avoid-do-while,
+         -cppcoreguidelines-pro-type-union-access,
+         -cppcoreguidelines-pro-type-reinterpret-cast,
          misc-*,
          -misc-non-private-member-variables-in-classes,
+         -misc-no-recursion
 "
 ExtraArgs:
   - '-std=c++20'
