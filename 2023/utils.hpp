@@ -48,6 +48,21 @@ namespace utils {
     }
 }
 
+//print a pair of iterators (begin, end)
+template <class T>
+std::ostream& operator<<(std::ostream& os, const std::tuple<T, T> tup) {
+    T begin, endx;
+    std::tie(begin, endx) = tup;
+    T beginx = begin;
+    bool first = true;
+    while (beginx != endx) {
+        if (!first) os << " "; else first = false;
+        os << *beginx;
+        beginx++;
+    }
+    return os;
+}
+
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {

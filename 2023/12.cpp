@@ -2,6 +2,7 @@
 #include <regex>
 #include <atomic>
 #include <thread>
+#include <tuple>
 #include "assert.h"
 
 using std::clog;
@@ -13,8 +14,7 @@ struct seq {
     uint len = 0;
 };
 
-std::ostream& operator<<(std::ostream& os, const seq& s)
-{
+std::ostream& operator<<(std::ostream& os, const seq& s) {
     os << s.len << s.type;
     return os;
 }
@@ -98,6 +98,44 @@ ulong combs(char prevtype, auto cur, const auto &vsend, auto ni, const auto &num
     assert(false);
 }
 
+ulong split(auto vsbegin, const auto &vsend, const auto &numbegin, const auto &numsend, auto ti, auto sti) {
+    while (vsbegin->type == '.') {
+        vsbegin++;
+        sti++;
+    }
+    auto cur = vsbegin;
+    auto len = 0;
+    auto stibegin = sti;
+    while (cur->type != '.' && cur != vsend) {
+        len += cur->len;
+        cur++;
+        sti++;
+    }
+    if (cur == vsend) {
+        return combs('.', vsbegin, vsend, numbegin, numsend, ti, stibegin, ' ');
+    }
+    auto numptr = numbegin;
+    auto tibegin = ti;
+    auto acc = -1;
+    ulong total = 0;
+    while (numptr != numsend) {
+        if (acc <= len && *ti <= *sti) {
+            auto half = combs('.', vsbegin, cur, numbegin, numptr, tibegin, stibegin, ' ');
+            if (half) {
+                total += half * split(cur, vsend, numptr, numsend, ti, sti);
+            }
+        }
+        acc += 1 + *numptr;
+        numptr++;
+        ti++;
+    }
+    if (acc <= len) {
+        auto half = combs('.', cur, vsend, numsend, numsend, ti, sti, ' ');
+        total += half * combs('.', vsbegin, cur, numbegin, numsend, tibegin, stibegin, ' ');
+    }
+    return total;
+}
+
 ulong solve(const auto &seq, const auto &nums) {
     auto numiter = nums.begin();
     auto numiterend = nums.end();
@@ -120,8 +158,7 @@ ulong solve(const auto &seq, const auto &nums) {
     }
     auto tailsiter = tails.begin();
     auto stailsiter = stails.begin();
-    //clog << nums << endl << tails << endl << seq << endl << stails << endl << endl;
-    return combs('.', seqiter, seqiterend, numiter, numiterend, tailsiter, stailsiter, ' ');
+    return split(seqiter, seqiterend, numiter, numiterend, tailsiter, stailsiter);
 }
 
 void do_line(std::string line, auto id, auto &total1, auto &total2) {
