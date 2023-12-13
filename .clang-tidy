@@ -10,7 +10,8 @@ Checks: "bugprone-*,
          -cppcoreguidelines-pro-type-reinterpret-cast,
          misc-*,
          -misc-non-private-member-variables-in-classes,
-         -misc-no-recursion
+         -misc-no-recursion,
+         -misc-definitions-in-headers
 "
 ExtraArgs:
   - '-std=c++20'
