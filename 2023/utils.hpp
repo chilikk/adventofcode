@@ -171,9 +171,10 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<T, T> tup) {
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
+    bool spaces = sizeof(T) != sizeof(char);
     bool first = true;
     for (auto& s: vs) {
-        if (!first) os << " "; else first = false;
+        if (spaces && !first) os << " "; else first = false;
         os << s;
     }
     return os;

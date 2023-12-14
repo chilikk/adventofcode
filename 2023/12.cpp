@@ -1,210 +1,136 @@
 #include "utils.hpp"
 #include <regex>
-#include <atomic>
-#include <thread>
-#include "assert.h"
+#include <tuple>
 
-using std::clog;
-using std::cout;
-using std::endl;
+#define debug 0 && std::clog
 
-struct seq {
-    char type = '.';
-    uint len = 0;
-};
-
-std::ostream& operator<<(std::ostream& os, const seq& s) {
-    os << s.len << s.type;
-    return os;
+int minlen(auto nums) {
+    if (nums.size() == 0) return 0;
+    int total = 0;
+    for (auto &n: nums) total += 1+n;
+    return total-1;
 }
 
-std::vector<seq> str2seq(const std::string str) {
-    std::vector<seq> ret = {};
-    seq cur = {};
-    for (const char& c: str) {
-        if (cur.type == c && c != '?') {
-            cur.len++;
-        } else {
-            if (cur.len > 0) ret.push_back(cur);
-            cur = seq{c, 1};
-        }
+uint nmax(auto numsbegin, auto numsend) {
+    uint max = 0;
+    for (auto n = numsbegin; n != numsend; ++n) if (*n>max) max = *n;
+    return max;
+}
+
+ulong solve(std::vector<char>::iterator specbegin,
+        const std::vector<char>::iterator specend,
+        std::vector<uint>::iterator numsbegin,
+        const std::vector<uint>::iterator numsend,
+        const int minlen) {
+    debug << std::tuple(specbegin, specend) << " : "
+        << std::tuple(numsbegin, numsend) << " (" << minlen << ") ->" << std::endl;
+    auto i = specbegin;
+    while (i != specend && *i == '.') ++i;
+    if (std::distance(i, specend) < minlen) {
+        debug << std::tuple(specbegin, specend) << " : "
+            << std::tuple(numsbegin, numsend) << " -> 0 (num length guard)" << std::endl;
+        return 0;
     }
-    if (cur.len > 0) ret.push_back(cur);
-    return ret;
-}
-
-ulong combs(char prevtype, auto cur, const auto &vsend, auto ni, const auto &numsend, auto ti, auto sti, char assume) {
-    auto next = cur;
-    while (cur != vsend) {
-        if (next == cur) next++;
-        auto curtype = cur->type;
-        if (assume != ' ') {
-            assert(curtype == '?');
-            curtype = assume;
-            assume = ' ';
-        }
-        if (curtype == '#') {
-            uint curlen = cur->len;
-            while (cur != next) {
-                if (ni == numsend || curlen > *ni) {
-                    return 0;
-                }
-                if (curlen == *ni && (next == vsend || next->type != '#')) {
-                    ni++;
-                    ti++;
-                    prevtype = '#';
-                    std::advance(sti, std::distance(cur, next));
-                    cur = next;
-                    if (ni == numsend && next != vsend) {
-                        next++;
-                        while (next != vsend) {
-                            if (next->type == '#') {
-                                return 0;
-                            }
-                            next++;
-                        }
-                        return 1;
-                    }
-                    if (next != vsend && *sti < *ti) {
-                        return 0;
-                    }
-                } else if (curlen < *ni && (next == vsend || next->type == '.')) {
-                    return 0;
-                } else {
-                    curlen += next->len;
-                    next++;
-                }
+    if (numsbegin == numsend) {
+        auto ret = 1;
+        while (i != specend) {
+            if (*i=='#') {
+                ret = 0;
+                break;
             }
-        } else if (curtype == '?') {
-            ulong total = 0;
-            if (prevtype == '#') {
-                assume = '.';
-            } else {
-                for (auto c: {'.', '#'}) {
-                    total += combs(prevtype, cur, vsend, ni, numsend, ti, sti, c);
-                }
-                return total;
-            }
-        } else {
-            prevtype = curtype;
-            std::advance(sti, std::distance(cur, next));
-            cur = next;
+            ++i;
         }
+        debug << std::tuple(specbegin, specend) << " : "
+            << std::tuple(numsbegin, numsend) << " -> " << ret
+            << " (has '#' when empty nums)" << std::endl;
+        return ret;
     }
-    if (cur == vsend) {
-        return ni == numsend;
+    auto begin = i;
+    // 1: 0 -> 0
+    // 2: 0 -> 1
+    // 3: 0 -> 1
+    // 4: 0 -> 2
+    std::advance(i, std::distance(i, specend)/2);
+    int dev = 0;
+    // 2: 1 -> end
+    // 3: 1 -> 2 -> 0 -> end
+    // 4: 2 -> 3 -> 1 -> end
+    while (i!=begin && i!=specend && *i == '#') {
+        dev = (dev>0?-1:1)*(std::abs(dev)+1);
+        i+=dev;
     }
-    assert(false);
-}
-
-ulong split(auto vsbegin, const auto &vsend, const auto &numbegin, const auto &numsend, auto ti, auto sti) {
-    while (vsbegin->type == '.') {
-        vsbegin++;
-        sti++;
+    if (i == specend || i == begin) {
+        ulong ret = 0;
+        if (*begin == '#') {
+            ret = (numsbegin + 1 == numsend && *numsbegin == std::distance(begin, specend));
+            debug << std::tuple(specbegin, specend) << " : "
+                << std::tuple(numsbegin, numsend) << " -> " << ret
+                << " ('#' group)" << std::endl;
+            return ret;
+        }
+        assert(*begin == '?');
+        ret = numsbegin + 1 == numsend
+              && (*numsbegin == std::distance(begin, specend)
+                 || *numsbegin == std::distance(begin, specend)-1);
+        debug << std::tuple(specbegin, specend) << " : "
+            << std::tuple(numsbegin, numsend) << " -> " << ret
+            << " ('?' followed by '#' group)" << std::endl;
+        return ret;
     }
-    auto cur = vsbegin;
-    auto len = 0;
-    auto stibegin = sti;
-    while (cur->type != '.' && cur != vsend) {
-        len += cur->len;
-        cur++;
-        sti++;
+    if (std::abs(dev) > nmax(numsbegin, numsend)) {
+        debug << std::tuple(specbegin, specend) << " : "
+            << std::tuple(numsbegin, numsend)
+            << " -> 0 ('#' group longer than max num)" << std::endl;
+        return 0;
     }
-    if (cur == vsend) {
-        return combs('.', vsbegin, vsend, numbegin, numsend, ti, stibegin, ' ');
-    }
-    auto numptr = numbegin;
-    auto tibegin = ti;
-    auto acc = -1;
     ulong total = 0;
-    while (numptr != numsend) {
-        if (acc <= len && *ti <= *sti) {
-            auto half = combs('.', vsbegin, cur, numbegin, numptr, tibegin, stibegin, ' ');
-            if (half) {
-                total += half * split(cur, vsend, numptr, numsend, ti, sti);
-            }
-        }
-        acc += 1 + *numptr;
-        numptr++;
-        ti++;
+    char orig = *i;
+    if (*i == '?') {
+        debug << std::distance(specbegin, i) << " try '#'" << std::endl;
+        *i = '#';
+        total += solve(specbegin, specend, numsbegin, numsend, minlen);
+        debug << std::distance(specbegin, i) << " try '.'" << std::endl;
+        *i = '.';
     }
-    if (acc <= len) {
-        auto half = combs('.', cur, vsend, numsend, numsend, ti, sti, ' ');
-        total += half * combs('.', vsbegin, cur, numbegin, numsend, tibegin, stibegin, ' ');
+    auto split = std::distance(specbegin, i);
+    int minlen1 = -1;
+    for (auto num = numsbegin; num != numsend; ++num) {
+        auto half = solve(begin, i, numsbegin, num, minlen1);
+        if (half) total += half * solve(i, specend, num, numsend, minlen-minlen1-1);
+        minlen1 += 1 + (int)*num;
     }
+    auto half = solve(i, specend, numsend, numsend, 0);
+    if (half) total += half * solve(begin, i, numsbegin, numsend, minlen);
+    debug << std::distance(specbegin, i) << " revert " << orig << std::endl;
+    *i = orig;
+    debug << std::tuple(specbegin, specend) << " : "
+        << std::tuple(numsbegin, numsend) << " -> " << total
+        << " (compound)" << std::endl;
     return total;
-}
-
-ulong solve(const auto &seq, const auto &nums) {
-    auto numiter = nums.begin();
-    auto numiterend = nums.end();
-    auto seqiter = seq.begin();
-    auto seqiterend = seq.end();
-    std::vector<uint> tails(nums);
-    uint prev = 0;
-    for (auto t = tails.rbegin(); t != tails.rend(); t++) {
-        *t += prev + 1;
-        prev = *t;
-    }
-    std::vector<uint> stails = {};
-    stails.resize(seq.size());
-    prev = 0;
-    auto s = seq.rbegin();
-    auto st = stails.rbegin();
-    for (; s != seq.rend(); s++, st++) {
-        *st = prev + s->len;
-        prev = *st;
-    }
-    auto tailsiter = tails.begin();
-    auto stailsiter = stails.begin();
-    return split(seqiter, seqiterend, numiter, numiterend, tailsiter, stailsiter);
-}
-
-void do_line(std::string line, auto id, auto &total1, auto &total2) {
-    clog << "start job " << id << endl;
-    std::vector<uint> nums;
-    std::regex re(R"(([?.#]+) ([0-9,]+))");
-    std::smatch m;
-    std::regex_match(line, m, re);
-    std::string spec = m[1].str();
-    std::string intspec = m[2].str();
-    nums = utils::ints<uint>(intspec);
-    auto seq = str2seq(spec);
-    auto res1 = solve(seq, nums);
-    total1 += res1;
-    clog << "job " << id << " part 1 : " << res1 << " combinations" << endl;
-    seq = str2seq(spec + "?" +  spec + "?" + spec + "?" + spec + "?" + spec);
-    nums = utils::ints<uint>(intspec + "," + intspec + "," + intspec + "," + intspec + "," + intspec);
-    auto res2 = solve(seq, nums);
-    clog << "job " << id << " part 2 : " << res2 << " combinations" << endl;
-    total2 += res2;
-}
-
-struct jobspec {
-    std::vector<std::string> jobs = {};
-    std::atomic_uint jobctr = 0;
-    std::atomic_ullong total1 = 0;
-    std::atomic_ullong total2 = 0;
-};
-
-void do_thread(jobspec *js) {
-    uint jobid = 0;
-    while ((jobid = js->jobctr++) < js->jobs.size()) {
-        do_line(js->jobs[jobid], jobid, js->total1, js->total2);
-    }
 }
 
 int main() {
     std::string line;
-    std::vector<std::thread> threads = {};
-    jobspec js = {};
+    ulong total1=0, total2=0;
     while (std::getline(std::cin, line)) {
-        js.jobs.push_back(line);
+        std::regex re(R"(([?.#]+) ([0-9,]+))");
+        std::smatch m;
+        std::regex_match(line, m, re);
+        line = m[1].str();
+        std::vector<char> spec = std::vector(line.begin(), line.end());
+        std::string intspec = m[2].str();
+        std::vector<uint> nums = utils::ints<uint>(intspec);
+        std::clog << spec << " : " << nums << std::endl;
+        total1 += solve(spec.begin(), spec.end(), nums.begin(), nums.end(), minlen(nums));
+        std::vector<char> spec2 = std::vector(spec);
+        std::vector<uint> nums2 = std::vector(nums);
+        nums2.reserve(5*nums.size());
+        for (int i=0; i<4; i++) {
+            spec2.push_back('?');
+            for (auto &i: spec) spec2.push_back(i);
+            for (auto &i: nums) nums2.push_back(i);
+        }
+        total2 += solve(spec2.begin(), spec2.end(), nums2.begin(), nums2.end(), minlen(nums2));
     }
-    threads.resize(std::thread::hardware_concurrency());
-    for (auto &i: threads) {
-        i = std::thread(do_thread, &js);
-    }
-    for (auto &t: threads) t.join();
-    cout << js.total1 << endl << js.total2 << endl;
+    std::cout << total1 << std::endl << total2 << std::endl;
 }
