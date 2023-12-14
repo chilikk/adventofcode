@@ -7,7 +7,7 @@ struct cmpres {
     bool fix = false;
 };
 
-cmpres cmp(std::span<char> s1, std::span<char> s2) {
+cmpres cmp(auto s1, auto s2) {
     cmpres res = {};
     auto i1 = s1.begin();
     auto i2 = s2.begin();
@@ -28,8 +28,8 @@ cmpres cmp(std::span<char> s1, std::span<char> s2) {
 bool test_refl(utils::map& map, int reflpoint, uint fixes) {
     auto down = reflpoint-1;
     auto up = reflpoint;
-    while (down >= 0 && up < map.lines) {
-        auto cmpres = cmp(map.line(down), map.line(up));
+    while (down >= 0 && up < map.nlines) {
+        auto cmpres = cmp(map.get_line(down), map.get_line(up));
         if (!cmpres.res) return false;
         if (cmpres.fix) {
             if (fixes == 0) return false;
@@ -83,5 +83,5 @@ int main() {
         total1 += refl1;
         total2 += refl2;
     }
-    std::cout << total1 << endl << total2 << endl;
+    std::cout << total1 << std::endl << total2 << std::endl;
 }

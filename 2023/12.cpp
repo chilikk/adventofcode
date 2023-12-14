@@ -2,7 +2,6 @@
 #include <regex>
 #include <atomic>
 #include <thread>
-#include <tuple>
 #include "assert.h"
 
 using std::clog;
