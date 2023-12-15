@@ -46,6 +46,15 @@ namespace utils {
                     if (xdiff != 0) right_once();
                     else if (ydiff != 0) down_once();
                 }
+                void prev() {
+                    if (xdiff != 0) left_once();
+                    else if (ydiff != 0) up_once();
+                }
+                uint id() {
+                    if (xdiff == 0) return x;
+                    if (ydiff == 0) return y;
+                    assert(false);
+                }
         };
         class line {
             public:
@@ -61,20 +70,24 @@ namespace utils {
                 utils::map::iterator begin() { return utils::map::iterator{0, (int)colno, 1, 0, m}; }
                 utils::map::iterator end() { return utils::map::iterator{(int)(m->nlines), (int)colno, 1, 0, m}; }
         };
+        static const int DOWN = 0;
+        static const int RIGHT = 1;
+        static const int UP = 2;
+        static const int LEFT = 3;
         iterator begin(int direction) {
-            if (direction == 0) {
+            if (direction == DOWN) {
                 //down
                 return this->get_column(0).begin();
-            } else if (direction == 1) {
+            } else if (direction == RIGHT) {
                 //right
                 return this->get_line(0).begin();
-            } else if (direction == 2) {
+            } else if (direction == UP) {
                 //up
                 auto it = this->get_column(0).end();
                 it.reverse();
                 it.up_once();
                 return it;
-            } else if (direction == 3) {
+            } else if (direction == LEFT) {
                 //left
                 auto it = this->get_line(0).end();
                 it.reverse();
