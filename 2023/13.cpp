@@ -51,15 +51,15 @@ uint find_refl(auto it, uint fixes) {
 }
 
 int main() {
-    utils::map map;
+    utils::map<char> map;
     ulong total1 = 0;
     ulong total2 = 0;
     while ((map = utils::read_map())) {
-        auto it = map.begin(utils::map::RIGHT);
+        auto it = map.begin(map.RIGHT);
         uint refl1 = 100*find_refl(it, 0);
         uint refl2 = 100*find_refl(it, 1);
         if (!refl1 || !refl2) {
-            it = map.begin(utils::map::DOWN);
+            it = map.begin(map.DOWN);
             if (!refl1) {
                 refl1 = find_refl(it, 0);
             }

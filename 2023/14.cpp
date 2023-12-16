@@ -1,10 +1,10 @@
 #include "utils.hpp"
 
 struct rng {
-    utils::map::iterator begin, end;
+    utils::map<char>::iterator<utils::map<char>> begin, end;
 };
 
-uint score(utils::map& m) {
+uint score(utils::map<char>& m) {
     uint total = 0;
     for (int i=0; i<m.nlines; i++) {
         uint counto = 0;
@@ -18,7 +18,7 @@ uint score(utils::map& m) {
 
 int main() {
     utils::map map = utils::read_map();
-    std::vector<utils::map> maps = {};
+    std::vector<utils::map<char>> maps = {};
     std::span<char> prev = {};
     std::span<char> cur = {};
     std::vector<rng> nranges = {}, sranges = {},  wranges = {}, eranges = {};
@@ -55,7 +55,7 @@ int main() {
                     while (i+period < rounds) i+=period;
                 }
             }
-            maps.push_back(utils::map{std::vector{map.storage}, map.nlines, map.linelen});
+            maps.push_back(utils::map<char>{std::vector{map.storage}, map.nlines, map.linelen});
         }
         for (auto &rangeset: {nranges, wranges, sranges, eranges}) {
             for (auto &range: rangeset) {

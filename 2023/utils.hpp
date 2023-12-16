@@ -5,22 +5,29 @@
 #include "assert.h"
 
 namespace utils {
+    template<class T>
     class map {
         public:
-        std::vector<char> storage;
+        std::vector<T> storage;
         uint nlines = 0;
         uint linelen = 0;
         operator bool() {return linelen;}
+        template <class M>
         class iterator {
+                class badref {};
             public:
                 int x = 0;
                 int y = 0;
                 int xdiff = 0;
                 int ydiff = 0;
-                map* m = nullptr;
-                char& operator *() {
-                    if (this->out_of_bounds()) throw("badref");
-                    return m->storage.at(m->xyptr(x,y));
+                M* m = nullptr;
+                const T& operator *() const {
+                    if (this->out_of_bounds()) throw(badref{});
+                    return m->at(x,y);
+                }
+                T& operator *() {
+                    if (this->out_of_bounds()) throw(badref{});
+                    return m->at(x,y);
                 }
                 bool operator ==(iterator other) const {return x == other.x && y == other.y;}
                 bool operator !=(iterator other) const {return x != other.x || y != other.y;}
@@ -49,32 +56,45 @@ namespace utils {
                 void prev() {
                     if (xdiff != 0) left_once();
                     else if (ydiff != 0) up_once();
-                }
+                    }
                 uint id() {
                     if (xdiff == 0) return x;
                     if (ydiff == 0) return y;
                     assert(false);
                 }
+                int direction() {
+                    if (xdiff == -1) return utils::map<T>::UP;
+                    else if (ydiff == 1) return utils::map<T>::RIGHT;
+                    else if (xdiff == 1) return utils::map<T>::DOWN;
+                    else if (ydiff == -1) return utils::map<T>::LEFT;
+                    assert(false);
+                }
         };
+        template<class M>
         class line {
             public:
                 uint lineno;
-                map * m;
-                utils::map::iterator begin() { return utils::map::iterator{(int)lineno, 0, 0, 1, m}; }
-                utils::map::iterator end()   { return utils::map::iterator{(int)lineno, (int)(m->linelen), 0, 1, m}; }
+                M * m;
+                utils::map<T>::iterator<M> begin() { return utils::map<T>::iterator<M>{(int)lineno, 0, 0, 1, m}; }
+                utils::map<T>::iterator<M> end()   { return utils::map<T>::iterator<M>{(int)lineno, (int)(m->linelen), 0, 1, m}; }
         };
+        template<class M>
         class column {
             public:
                 uint colno;
-                map * m;
-                utils::map::iterator begin() { return utils::map::iterator{0, (int)colno, 1, 0, m}; }
-                utils::map::iterator end() { return utils::map::iterator{(int)(m->nlines), (int)colno, 1, 0, m}; }
+                M * m;
+                utils::map<T>::iterator<M> begin() {
+                    return utils::map<T>::iterator<M>{0, (int)colno, 1, 0, m};
+                }
+                utils::map<T>::iterator<M> end() {
+                    return utils::map<T>::iterator<M>{(int)(m->nlines), (int)colno, 1, 0, m};
+                }
         };
         static const int DOWN = 0;
         static const int RIGHT = 1;
         static const int UP = 2;
         static const int LEFT = 3;
-        iterator begin(int direction) {
+        iterator<map> begin(int direction) {
             if (direction == DOWN) {
                 //down
                 return this->get_column(0).begin();
@@ -105,9 +125,13 @@ namespace utils {
             }
             return true;
         }
-        line get_line(uint n) { return line{n, this}; }
-        column get_column(uint n) { return column{n, this}; }
-        uint xyptr(uint x, uint y) { return x*this->linelen + y; }
+        line<map> get_line(uint n) { return line<map>{n, this}; }
+        line<const map> get_line(uint n) const { return line<const map>{n, this}; }
+        column<map> get_column(uint n) { return column<map>{n, this}; }
+        column<const map> get_column(uint n) const { return column<const map>{n, this}; }
+        uint xyptr(uint x, uint y) const { return x*this->linelen + y; }
+        T& at(uint x, uint y) { return this->storage.at(xyptr(x, y)); }
+        const T& at(uint x, uint y) const { return this->storage.at(xyptr(x, y)); }
     };
     template<class T>
     std::vector<T> ints(const std::string s, char sep = ',') {
@@ -125,8 +149,8 @@ namespace utils {
         }
         return ret;
     }
-    map read_map() {
-        map ret = {};
+    map<char> read_map() {
+        map<char> ret = {};
         std::string line;
         while (std::getline(std::cin, line)) {
             if (ret.linelen == 0) {
@@ -138,16 +162,23 @@ namespace utils {
             ret.nlines++;
             for (auto& c:line) ret.storage.push_back(c);
         }
-        assert(ret.storage.size() == ret.nlines*ret.linelen);
+        assert(ret.storage.size() == (ulong)ret.nlines*ret.linelen);
         return ret;
     }
 }
 
-std::ostream& operator<<(std::ostream& os, utils::map &m) {
+template<class T>
+std::ostream& operator<<(std::ostream& os, utils::map<T> &m) {
     auto i = m.begin(1);
+    bool spaces = sizeof(T) != sizeof(char);
+    bool first = true;
     while (!i.out_of_bounds()) {
-        for (;!i.out_of_bounds();++i) os << *i;
+        for (;!i.out_of_bounds();++i){
+            if (spaces && !first) os << " "; else first = false;
+            os << *i;
+        }
         i.y=0; i.down_once();
+        first = true;
         os << std::endl;
     }
     return os;
