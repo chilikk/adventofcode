@@ -35,10 +35,18 @@ namespace utils {
                 iterator& operator++() { x += xdiff; y += ydiff; return *this; }
                 iterator& operator--() { x -= xdiff; y -= ydiff; return *this; }
                 bool out_of_bounds() { return (x < 0 || y < 0 || x >= m->nlines || y >= m->linelen); }
-                void up() { xdiff = -1; ydiff = 0; }
-                void right() { xdiff = 0; ydiff = 1; }
-                void down() { xdiff = 1; ydiff = 0; }
-                void left() { xdiff = 0; ydiff = -1; }
+                void up() { set_direction(utils::map<T>::UP); }
+                void right() { set_direction(utils::map<T>::RIGHT); }
+                void down() { set_direction(utils::map<T>::DOWN); }
+                void left() { set_direction(utils::map<T>::LEFT); }
+                void set_direction(utils::map<T>::direction dir) {
+                    switch (dir) {
+                        case UP: xdiff = -1; ydiff = 0; break;
+                        case RIGHT: xdiff = 0; ydiff = 1; break;
+                        case DOWN: xdiff = 1; ydiff = 0; break;
+                        case LEFT: xdiff = 0; ydiff = -1; break;
+                    }
+                }
                 void reverse() { xdiff = -xdiff; ydiff = -ydiff; }
                 void next() {
                     if (xdiff != 0) ++y;
@@ -53,7 +61,7 @@ namespace utils {
                     if (ydiff == 0) return y;
                     assert(false);
                 }
-                utils::map<T>::direction direction() {
+                utils::map<T>::direction direction() const {
                     if (xdiff == -1) return utils::map<T>::UP;
                     else if (ydiff == 1) return utils::map<T>::RIGHT;
                     else if (xdiff == 1) return utils::map<T>::DOWN;
@@ -83,6 +91,23 @@ namespace utils {
         };
         iterator<map> begin(direction direction) {
             iterator<map> it;
+            switch (direction) {
+                case DOWN:
+                    return this->get_column(0).begin();
+                case RIGHT:
+                    return this->get_line(0).begin();
+                case UP:
+                    it = this->get_column(0).end();
+                    (++it).reverse();
+                    return it;
+                case LEFT:
+                    it = this->get_line(0).end();
+                    (++it).reverse();
+                    return it;
+            }
+        }
+        iterator<const map> begin(direction direction) const {
+            iterator<const map> it;
             switch (direction) {
                 case DOWN:
                     return this->get_column(0).begin();
