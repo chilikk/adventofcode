@@ -12,6 +12,7 @@ namespace utils {
         uint nlines = 0;
         uint linelen = 0;
         operator bool() {return linelen;}
+        enum direction {DOWN, RIGHT, UP, LEFT};
         template <class M>
         class iterator {
                 class badref {};
@@ -38,31 +39,21 @@ namespace utils {
                 void right() { xdiff = 0; ydiff = 1; }
                 void down() { xdiff = 1; ydiff = 0; }
                 void left() { xdiff = 0; ydiff = -1; }
-                void right_once() { y += 1; }
-                void left_once() { y -= 1; }
-                void up_once() { x -= 1; }
-                void down_once() { x += 1; }
                 void reverse() { xdiff = -xdiff; ydiff = -ydiff; }
-                void turn() {
-                    if (xdiff == -1) right();
-                    else if (ydiff == 1) down();
-                    else if (xdiff == 1) left();
-                    else if (ydiff == -1) up();
-                }
                 void next() {
-                    if (xdiff != 0) right_once();
-                    else if (ydiff != 0) down_once();
+                    if (xdiff != 0) ++y;
+                    else if (ydiff != 0) ++x;
                 }
                 void prev() {
-                    if (xdiff != 0) left_once();
-                    else if (ydiff != 0) up_once();
+                    if (xdiff != 0) --y;
+                    else if (ydiff != 0) --x;
                     }
                 uint id() {
                     if (xdiff == 0) return x;
                     if (ydiff == 0) return y;
                     assert(false);
                 }
-                int direction() {
+                utils::map<T>::direction direction() {
                     if (xdiff == -1) return utils::map<T>::UP;
                     else if (ydiff == 1) return utils::map<T>::RIGHT;
                     else if (xdiff == 1) return utils::map<T>::DOWN;
@@ -90,31 +81,22 @@ namespace utils {
                     return utils::map<T>::iterator<M>{(int)(m->nlines), (int)colno, 1, 0, m};
                 }
         };
-        static const int DOWN = 0;
-        static const int RIGHT = 1;
-        static const int UP = 2;
-        static const int LEFT = 3;
-        iterator<map> begin(int direction) {
-            if (direction == DOWN) {
-                //down
-                return this->get_column(0).begin();
-            } else if (direction == RIGHT) {
-                //right
-                return this->get_line(0).begin();
-            } else if (direction == UP) {
-                //up
-                auto it = this->get_column(0).end();
-                it.reverse();
-                it.up_once();
-                return it;
-            } else if (direction == LEFT) {
-                //left
-                auto it = this->get_line(0).end();
-                it.reverse();
-                it.left_once();
-                return it;
+        iterator<map> begin(direction direction) {
+            iterator<map> it;
+            switch (direction) {
+                case DOWN:
+                    return this->get_column(0).begin();
+                case RIGHT:
+                    return this->get_line(0).begin();
+                case UP:
+                    it = this->get_column(0).end();
+                    (++it).reverse();
+                    return it;
+                case LEFT:
+                    it = this->get_line(0).end();
+                    (++it).reverse();
+                    return it;
             }
-            assert(false);
         }
         bool operator ==(map other) const {
             auto it1 = storage.begin();
@@ -169,7 +151,7 @@ namespace utils {
 
 template<class T>
 std::ostream& operator<<(std::ostream& os, utils::map<T> &m) {
-    auto i = m.begin(1);
+    auto i = m.begin(utils::map<T>::RIGHT);
     bool spaces = sizeof(T) != sizeof(char);
     bool first = true;
     while (!i.out_of_bounds()) {
@@ -177,7 +159,7 @@ std::ostream& operator<<(std::ostream& os, utils::map<T> &m) {
             if (spaces && !first) os << " "; else first = false;
             os << *i;
         }
-        i.y=0; i.down_once();
+        i.y=0; i.next();
         first = true;
         os << std::endl;
     }
