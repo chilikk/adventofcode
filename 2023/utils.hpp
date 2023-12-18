@@ -98,12 +98,12 @@ namespace utils {
                     return this->get_line(0).begin();
                 case UP:
                     it = this->get_column(0).end();
-                    (++it).reverse();
-                    return it;
+                    it.reverse();
+                    return ++it;
                 case LEFT:
                     it = this->get_line(0).end();
-                    (++it).reverse();
-                    return it;
+                    it.reverse();
+                    return ++it;
             }
         }
         iterator<const map> begin(direction direction) const {

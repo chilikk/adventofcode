@@ -22,7 +22,7 @@ int main() {
     std::span<char> prev = {};
     std::span<char> cur = {};
     std::vector<rng> nranges = {}, sranges = {},  wranges = {}, eranges = {};
-    auto dir = 0;
+    auto dir = map.DOWN;
     for (auto rangeset: {&nranges, &wranges, &sranges, &eranges}) {
         auto p = map.begin(dir);
         for (auto seq = p; !seq.out_of_bounds(); seq.next()) {
@@ -41,7 +41,7 @@ int main() {
                 rangeset->push_back(rng{begin, ++last});
             }
         }
-        ++dir;
+        dir=utils::map<char>::direction((dir+1)%4);
     }
     bool first_done = false;
     bool period_found = false;
@@ -77,6 +77,7 @@ int main() {
                 first_done = true;
             }
         }
+        //std::clog << map << std::endl;
     }
     std::cout << score(map) << std::endl;
 }
