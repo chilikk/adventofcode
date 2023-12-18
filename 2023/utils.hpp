@@ -15,7 +15,14 @@ namespace utils {
         enum direction {DOWN, RIGHT, UP, LEFT};
         template <class M>
         class iterator {
-                class badref {};
+                class badref {
+                    public:
+                    int x = 0;
+                    int y = 0;
+                    badref(int x, int y): x(x), y(y) {
+                        std::clog << "badref: " << x << ":" << y << std::endl;
+                    }
+                };
             public:
                 int x = 0;
                 int y = 0;
@@ -23,16 +30,17 @@ namespace utils {
                 int ydiff = 0;
                 M* m = nullptr;
                 const T& operator *() const {
-                    if (this->out_of_bounds()) throw(badref{});
+                    if (this->out_of_bounds()) throw(badref{x, y});
                     return m->at(x,y);
                 }
                 T& operator *() {
-                    if (this->out_of_bounds()) throw(badref{});
+                    if (this->out_of_bounds()) throw(badref{x, y});
                     return m->at(x,y);
                 }
                 bool operator ==(iterator other) const {return x == other.x && y == other.y;}
                 bool operator !=(iterator other) const {return x != other.x || y != other.y;}
                 iterator& operator++() { x += xdiff; y += ydiff; return *this; }
+                iterator& operator+=(int i) { x += i*xdiff; y += i*ydiff; return *this; }
                 iterator& operator--() { x -= xdiff; y -= ydiff; return *this; }
                 bool out_of_bounds() { return (x < 0 || y < 0 || x >= m->nlines || y >= m->linelen); }
                 void up() { set_direction(utils::map<T>::UP); }
