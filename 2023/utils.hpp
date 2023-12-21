@@ -1,9 +1,17 @@
 #include <iostream>
+#include <array>
 #include <list>
+#include <map>
 #include <memory>
+#include <set>
 #include <span>
+#include <tuple>
 #include <vector>
-#include "assert.h"
+#include <regex>
+#include <algorithm>
+#include <numeric>
+#include <cassert>
+#include <queue>
 
 namespace utils {
     template<class T>
@@ -30,20 +38,26 @@ namespace utils {
                 int xdiff = 0;
                 int ydiff = 0;
                 M* m = nullptr;
+                bool wrap = false;
+                int wx() {return wrap?w(x, m->nlines):x;};
+                int wy() {return wrap?w(y, m->linelen):y;};
+                inline int w(int i, int mod) { return ((i%mod)+mod)%mod; }
                 const T& operator *() const {
                     if (this->out_of_bounds()) throw(badref{x, y});
-                    return m->at(x,y);
+                    return m->at(wx(),wy());
                 }
                 T& operator *() {
                     if (this->out_of_bounds()) throw(badref{x, y});
-                    return m->at(x,y);
+                    return m->at(wx(),wy());
                 }
                 bool operator ==(iterator other) const {return x == other.x && y == other.y;}
                 bool operator !=(iterator other) const {return x != other.x || y != other.y;}
                 iterator& operator++() { x += xdiff; y += ydiff; return *this; }
                 iterator& operator+=(int i) { x += i*xdiff; y += i*ydiff; return *this; }
                 iterator& operator--() { x -= xdiff; y -= ydiff; return *this; }
-                bool out_of_bounds() { return (x < 0 || y < 0 || x >= m->nlines || y >= m->linelen); }
+                bool out_of_bounds() {
+                    return !wrap && (wx() < 0 || wy() < 0 || wx() >= m->nlines || wy() >= m->linelen);
+                }
                 void up() { set_direction(utils::map<T>::UP); }
                 void right() { set_direction(utils::map<T>::RIGHT); }
                 void down() { set_direction(utils::map<T>::DOWN); }
@@ -83,8 +97,12 @@ namespace utils {
             public:
                 uint lineno;
                 M * m;
-                utils::map<T>::iterator<M> begin() { return utils::map<T>::iterator<M>{(int)lineno, 0, 0, 1, m}; }
-                utils::map<T>::iterator<M> end()   { return utils::map<T>::iterator<M>{(int)lineno, (int)(m->linelen), 0, 1, m}; }
+                utils::map<T>::iterator<M> begin() {
+                    return utils::map<T>::iterator<M>{(int)lineno, 0, 0, 1, m, false};
+                }
+                utils::map<T>::iterator<M> end() {
+                    return utils::map<T>::iterator<M>{(int)lineno, (int)(m->linelen), 0, 1, m, false};
+                }
         };
         template<class M>
         class column {
@@ -92,10 +110,10 @@ namespace utils {
                 uint colno;
                 M * m;
                 utils::map<T>::iterator<M> begin() {
-                    return utils::map<T>::iterator<M>{0, (int)colno, 1, 0, m};
+                    return utils::map<T>::iterator<M>{0, (int)colno, 1, 0, m, false};
                 }
                 utils::map<T>::iterator<M> end() {
-                    return utils::map<T>::iterator<M>{(int)(m->nlines), (int)colno, 1, 0, m};
+                    return utils::map<T>::iterator<M>{(int)(m->nlines), (int)colno, 1, 0, m, false};
                 }
         };
         iterator<map> begin(direction direction) {
