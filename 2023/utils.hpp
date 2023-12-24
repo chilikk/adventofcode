@@ -42,11 +42,11 @@ namespace utils {
                 int wx() {return wrap?w(x, m->nlines):x;};
                 int wy() {return wrap?w(y, m->linelen):y;};
                 inline int w(int i, int mod) { return ((i%mod)+mod)%mod; }
-                const T& operator *() const {
+                const std::vector<T>::reference operator *() const {
                     if (this->out_of_bounds()) throw(badref{x, y});
                     return m->at(wx(),wy());
                 }
-                T& operator *() {
+                std::vector<T>::reference operator *() {
                     if (this->out_of_bounds()) throw(badref{x, y});
                     return m->at(wx(),wy());
                 }
@@ -164,8 +164,8 @@ namespace utils {
         column<map> get_column(uint n) { return column<map>{n, this}; }
         column<const map> get_column(uint n) const { return column<const map>{n, this}; }
         uint xyptr(uint x, uint y) const { return x*this->linelen + y; }
-        T& at(uint x, uint y) { return this->storage.at(xyptr(x, y)); }
-        const T& at(uint x, uint y) const { return this->storage.at(xyptr(x, y)); }
+        std::vector<T>::reference at(uint x, uint y) { return this->storage.at(xyptr(x, y)); }
+        const std::vector<T>::reference at(uint x, uint y) const { return this->storage.at(xyptr(x, y)); }
     };
     template<class T>
     std::vector<T> ints(const std::string s, char sep = ',') {
